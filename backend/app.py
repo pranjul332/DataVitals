@@ -20,7 +20,7 @@ def health_check():
 def analyze_dataset():
     """
     Main analysis endpoint.
-    Accepts: CSV file + optional target column
+    Accepts: CSV file from frontend + optional target column
     Returns: Health report (Phase 1: profiling, missing, features)
     """
     try:
@@ -37,37 +37,61 @@ def analyze_dataset():
         if not file.filename.endswith('.csv'):
             return jsonify({'error': 'Only CSV files are supported'}), 400
         
-        # Read CSV
+        # Read CSV directly from uploaded file
         try:
             csv_content = file.read().decode('utf-8')
             df = pd.read_csv(io.StringIO(csv_content))
+            
+            # Basic validation
+            if df.empty:
+                return jsonify({'error': 'CSV file is empty'}), 400
+            
+            if len(df.columns) == 0:
+                return jsonify({'error': 'CSV file has no columns'}), 400
+                
+        except UnicodeDecodeError:
+            return jsonify({'error': 'Failed to decode CSV. Please ensure file is UTF-8 encoded'}), 400
+        except pd.errors.EmptyDataError:
+            return jsonify({'error': 'CSV file is empty or invalid'}), 400
         except Exception as e:
             return jsonify({'error': f'Failed to parse CSV: {str(e)}'}), 400
         
-        # Validate target column
+        # Validate target column if provided
         if target_col and target_col not in df.columns:
-            return jsonify({'error': f"Target column '{target_col}' not found in dataset"}), 400
+            return jsonify({
+                'error': f"Target column '{target_col}' not found in dataset",
+                'available_columns': list(df.columns)
+            }), 400
         
         # Run Phase 1 Analysis
         report = {}
         
-        # 1. Profile
-        profiler = DatasetProfiler(df)
-        report['profile'] = profiler.profile()
+        try:
+            # 1. Dataset Profile
+            profiler = DatasetProfiler(df)
+            report['profile'] = profiler.profile()
+            
+            # 2. Missing Value Analysis
+            missing_analyzer = MissingAnalyzer(df, target_col)
+            report['missing'] = missing_analyzer.analyze()
+            
+            # 3. Feature Quality Analysis
+            feature_analyzer = FeatureQuality(df, target_col)
+            report['features'] = feature_analyzer.analyze()
+            
+        except Exception as e:
+            return jsonify({
+                'error': f'Analysis failed: {str(e)}',
+                'traceback': traceback.format_exc()
+            }), 500
         
-        # 2. Missing Analysis
-        missing_analyzer = MissingAnalyzer(df, target_col)
-        report['missing'] = missing_analyzer.analyze()
-        
-        # 3. Feature Quality
-        feature_analyzer = FeatureQuality(df, target_col)
-        report['features'] = feature_analyzer.analyze()
-        
-        # Metadata
+        # Add metadata
         report['metadata'] = {
             'filename': file.filename,
             'target_column': target_col,
-            'phase': 'phase_1'
+            'phase': 'phase_1',
+            'columns': list(df.columns),
+            'dtypes': {col: str(dtype) for col, dtype in df.dtypes.items()}
         }
         
         return jsonify({
