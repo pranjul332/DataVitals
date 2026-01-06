@@ -7,6 +7,8 @@ import traceback
 from core.profiler import DatasetProfiler
 from core.missing import MissingAnalyzer
 from core.features import FeatureQuality
+from core.distribution import DistributionAnalyzer
+
 
 app = Flask(__name__)
 CORS(app)
@@ -14,14 +16,14 @@ CORS(app)
 @app.route('/health', methods=['GET'])
 def health_check():
     """Simple health check endpoint."""
-    return jsonify({'status': 'healthy', 'version': '1.0.0'})
+    return jsonify({'status': 'healthy', 'version': '2.0.0'})
 
 @app.route('/analyze', methods=['POST'])
 def analyze_dataset():
     """
     Main analysis endpoint.
-    Accepts: CSV file from frontend + optional target column
-    Returns: Health report (Phase 1: profiling, missing, features)
+    Accepts: CSV file + optional target column
+    Returns: Health report (Phase 1 + Phase 2)
     """
     try:
         # Validate request
@@ -37,7 +39,7 @@ def analyze_dataset():
         if not file.filename.endswith('.csv'):
             return jsonify({'error': 'Only CSV files are supported'}), 400
         
-        # Read CSV directly from uploaded file
+        # Read CSV
         try:
             csv_content = file.read().decode('utf-8')
             df = pd.read_csv(io.StringIO(csv_content))
@@ -63,10 +65,12 @@ def analyze_dataset():
                 'available_columns': list(df.columns)
             }), 400
         
-        # Run Phase 1 Analysis
+        # Run Full Analysis (Phase 1 + Phase 2)
         report = {}
         
         try:
+            # === PHASE 1: FOUNDATION ===
+            
             # 1. Dataset Profile
             profiler = DatasetProfiler(df)
             report['profile'] = profiler.profile()
@@ -79,6 +83,13 @@ def analyze_dataset():
             feature_analyzer = FeatureQuality(df, target_col)
             report['features'] = feature_analyzer.analyze()
             
+            # === PHASE 2: STATISTICAL DEPTH ===
+            
+            # 4. Distribution & Outlier Analysis
+            distribution_analyzer = DistributionAnalyzer(df, target_col)
+            report['distribution'] = distribution_analyzer.analyze()
+
+            
         except Exception as e:
             return jsonify({
                 'error': f'Analysis failed: {str(e)}',
@@ -89,7 +100,7 @@ def analyze_dataset():
         report['metadata'] = {
             'filename': file.filename,
             'target_column': target_col,
-            'phase': 'phase_1',
+            'phase': 'phase_2_complete',
             'columns': list(df.columns),
             'dtypes': {col: str(dtype) for col, dtype in df.dtypes.items()}
         }

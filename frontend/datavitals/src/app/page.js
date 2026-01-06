@@ -98,15 +98,9 @@ export default function Component() {
   };
 
   // Safe access helpers
-  const safeGet = (obj, path, defaultValue = 0) => {
-    try {
-      return (
-        path.split(".").reduce((acc, part) => acc?.[part], obj) ?? defaultValue
-      );
-    } catch {
-      return defaultValue;
-    }
-  };
+  const safeGet = (obj, path, defaultValue = 0) =>
+    path.split(".").reduce((acc, key) => acc?.[key], obj) ?? defaultValue;
+
 
   const safeArray = (arr) => (Array.isArray(arr) ? arr : []);
 
