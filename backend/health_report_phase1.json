@@ -1,0 +1,170 @@
+{
+  "report": {
+    "features": {
+      "constant_features": [
+        {
+          "column": "feature_constant",
+          "unique_values": 1
+        }
+      ],
+      "high_cardinality_features": [
+        {
+          "cardinality_ratio": 0.95,
+          "column": "feature_high_card",
+          "unique_values": 1000
+        }
+      ],
+      "near_constant_features": [
+        {
+          "column": "feature_near_constant",
+          "dominant_percentage": 98.1,
+          "unique_values": 2
+        }
+      ],
+      "redundant_features": [
+        {
+          "column_1": "feature_redundant",
+          "column_2": "feature_clean",
+          "correlation": 0.998
+        }
+      ],
+      "summary": {
+        "quality_issues": 3,
+        "redundant_pairs": 1,
+        "total_features": 8
+      }
+    },
+    "metadata": {
+      "filename": "sample_data.csv",
+      "phase": "phase_1",
+      "target_column": "target"
+    },
+    "missing": {
+      "column_analysis": [
+        {
+          "column": "feature_missing",
+          "missing_count": 105,
+          "missing_percentage": 10.0,
+          "severity": "medium"
+        },
+        {
+          "column": "feature_clean",
+          "missing_count": 0,
+          "missing_percentage": 0.0,
+          "severity": "low"
+        },
+        {
+          "column": "feature_outliers",
+          "missing_count": 0,
+          "missing_percentage": 0.0,
+          "severity": "low"
+        },
+        {
+          "column": "feature_constant",
+          "missing_count": 0,
+          "missing_percentage": 0.0,
+          "severity": "low"
+        },
+        {
+          "column": "feature_near_constant",
+          "missing_count": 0,
+          "missing_percentage": 0.0,
+          "severity": "low"
+        },
+        {
+          "column": "feature_high_card",
+          "missing_count": 0,
+          "missing_percentage": 0.0,
+          "severity": "low"
+        },
+        {
+          "column": "feature_redundant",
+          "missing_count": 0,
+          "missing_percentage": 0.0,
+          "severity": "low"
+        },
+        {
+          "column": "category",
+          "missing_count": 0,
+          "missing_percentage": 0.0,
+          "severity": "low"
+        },
+        {
+          "column": "target",
+          "missing_count": 0,
+          "missing_percentage": 0.0,
+          "severity": "low"
+        }
+      ],
+      "row_analysis": {
+        "extreme_missing_percentage": 0.0,
+        "extreme_missing_rows": 0
+      },
+      "summary": {
+        "columns_high_missing": 0,
+        "columns_with_missing": 1,
+        "total_columns": 9
+      },
+      "target_analysis": {
+        "critical": false,
+        "exists": true,
+        "missing_count": 0,
+        "missing_percentage": 0.0
+      }
+    },
+    "profile": {
+      "column_types": {
+        "categorical": [
+          "feature_constant",
+          "feature_near_constant",
+          "feature_high_card",
+          "category"
+        ],
+        "datetime": [],
+        "numeric": [
+          "feature_clean",
+          "feature_missing",
+          "feature_outliers",
+          "feature_redundant",
+          "target"
+        ]
+      },
+      "dtypes": {
+        "columns": {
+          "category": "object",
+          "feature_clean": "float64",
+          "feature_constant": "object",
+          "feature_high_card": "object",
+          "feature_missing": "float64",
+          "feature_near_constant": "object",
+          "feature_outliers": "float64",
+          "feature_redundant": "float64",
+          "target": "int64"
+        },
+        "summary": {
+          "float64": 4,
+          "int64": 1,
+          "object": 4
+        }
+      },
+      "duplicates": {
+        "count": 50,
+        "percentage": 4.76
+      },
+      "memory": {
+        "bytes": 275116,
+        "mb": 0.26
+      },
+      "missing": {
+        "missing_cells": 105,
+        "missing_percentage": 1.11,
+        "total_cells": 9450
+      },
+      "shape": {
+        "columns": 9,
+        "rows": 1050
+      }
+    }
+  },
+  "success": true
+}
