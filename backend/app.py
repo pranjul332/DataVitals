@@ -8,7 +8,7 @@ from core.profiler import DatasetProfiler
 from core.missing import MissingAnalyzer
 from core.features import FeatureQuality
 from core.distribution import DistributionAnalyzer
-
+from core.imbalance import ImbalanceAnalyzer
 
 app = Flask(__name__)
 CORS(app)
@@ -88,7 +88,10 @@ def analyze_dataset():
             # 4. Distribution & Outlier Analysis
             distribution_analyzer = DistributionAnalyzer(df, target_col)
             report['distribution'] = distribution_analyzer.analyze()
-
+            
+            # 5. Class Imbalance Analysis
+            imbalance_analyzer = ImbalanceAnalyzer(df, target_col)
+            report['imbalance'] = imbalance_analyzer.analyze()
             
         except Exception as e:
             return jsonify({
