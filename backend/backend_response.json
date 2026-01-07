@@ -1,0 +1,599 @@
+{
+  "component_scores": {
+    "baseline": 4.0,
+    "data_size": 10.0,
+    "distribution": 10,
+    "features": 10,
+    "imbalance": 6.0,
+    "leakage": 30.0,
+    "missing": 6.8
+  },
+  "detailed_analysis": {
+    "baseline": {
+      "data_split": {
+        "test_size": 3996,
+        "train_size": 9324
+      },
+      "exists": true,
+      "feature_importance": [
+        {
+          "feature": "bath",
+          "importance": 0.3732
+        },
+        {
+          "feature": "total_sqft",
+          "importance": 0.3401
+        },
+        {
+          "feature": "size",
+          "importance": 0.1057
+        },
+        {
+          "feature": "location",
+          "importance": 0.081
+        },
+        {
+          "feature": "area_type",
+          "importance": 0.0382
+        },
+        {
+          "feature": "society",
+          "importance": 0.0299
+        },
+        {
+          "feature": "availability",
+          "importance": 0.0267
+        },
+        {
+          "feature": "balcony",
+          "importance": 0.0052
+        }
+      ],
+      "metrics": {
+        "r2_gap": 0.2193,
+        "test_r2": 0.4075,
+        "test_rmse": 116.6898,
+        "train_r2": 0.6268,
+        "train_rmse": 90.3073
+      },
+      "model": "RandomForestRegressor",
+      "noise_estimate": 0.0325,
+      "overfitting": {
+        "gap": 0.2193,
+        "severity": "severe"
+      },
+      "task_type": "regression"
+    },
+    "distribution": {
+      "categorical_features": [
+        {
+          "cardinality": 4,
+          "column": "area_type",
+          "dominant_category": {
+            "count": 8790,
+            "percentage": 65.99,
+            "value": "Super built-up  Area"
+          },
+          "dominant_percentage": 65.99,
+          "entropy": 0.652,
+          "top_categories": [
+            {
+              "count": 8790,
+              "percentage": 65.99,
+              "value": "Super built-up  Area"
+            },
+            {
+              "count": 2418,
+              "percentage": 18.15,
+              "value": "Built-up  Area"
+            },
+            {
+              "count": 2025,
+              "percentage": 15.2,
+              "value": "Plot  Area"
+            },
+            {
+              "count": 87,
+              "percentage": 0.65,
+              "value": "Carpet  Area"
+            }
+          ]
+        },
+        {
+          "cardinality": 81,
+          "column": "availability",
+          "dominant_category": {
+            "count": 10581,
+            "percentage": 79.44,
+            "value": "Ready To Move"
+          },
+          "dominant_percentage": 79.44,
+          "entropy": 0.272,
+          "top_categories": [
+            {
+              "count": 10581,
+              "percentage": 79.44,
+              "value": "Ready To Move"
+            },
+            {
+              "count": 307,
+              "percentage": 2.3,
+              "value": "18-Dec"
+            },
+            {
+              "count": 295,
+              "percentage": 2.21,
+              "value": "18-May"
+            },
+            {
+              "count": 271,
+              "percentage": 2.03,
+              "value": "18-Apr"
+            },
+            {
+              "count": 200,
+              "percentage": 1.5,
+              "value": "18-Aug"
+            }
+          ]
+        },
+        {
+          "cardinality": 1305,
+          "column": "location",
+          "dominant_category": {
+            "count": 540,
+            "percentage": 4.05,
+            "value": "Whitefield"
+          },
+          "dominant_percentage": 4.05,
+          "entropy": 0.821,
+          "top_categories": [
+            {
+              "count": 540,
+              "percentage": 4.05,
+              "value": "Whitefield"
+            },
+            {
+              "count": 399,
+              "percentage": 3.0,
+              "value": "Sarjapur  Road"
+            },
+            {
+              "count": 302,
+              "percentage": 2.27,
+              "value": "Electronic City"
+            },
+            {
+              "count": 273,
+              "percentage": 2.05,
+              "value": "Kanakpura Road"
+            },
+            {
+              "count": 234,
+              "percentage": 1.76,
+              "value": "Thanisandra"
+            }
+          ]
+        },
+        {
+          "cardinality": 31,
+          "column": "size",
+          "dominant_category": {
+            "count": 5199,
+            "percentage": 39.08,
+            "value": "2 BHK"
+          },
+          "dominant_percentage": 39.08,
+          "entropy": 0.507,
+          "top_categories": [
+            {
+              "count": 5199,
+              "percentage": 39.08,
+              "value": "2 BHK"
+            },
+            {
+              "count": 4310,
+              "percentage": 32.4,
+              "value": "3 BHK"
+            },
+            {
+              "count": 826,
+              "percentage": 6.21,
+              "value": "4 Bedroom"
+            },
+            {
+              "count": 591,
+              "percentage": 4.44,
+              "value": "4 BHK"
+            },
+            {
+              "count": 547,
+              "percentage": 4.11,
+              "value": "3 Bedroom"
+            }
+          ]
+        },
+        {
+          "cardinality": 2688,
+          "column": "society",
+          "dominant_category": {
+            "count": 80,
+            "percentage": 1.02,
+            "value": "GrrvaGr"
+          },
+          "dominant_percentage": 1.02,
+          "entropy": 0.913,
+          "top_categories": [
+            {
+              "count": 80,
+              "percentage": 1.02,
+              "value": "GrrvaGr"
+            },
+            {
+              "count": 76,
+              "percentage": 0.97,
+              "value": "PrarePa"
+            },
+            {
+              "count": 59,
+              "percentage": 0.75,
+              "value": "Prtates"
+            },
+            {
+              "count": 59,
+              "percentage": 0.75,
+              "value": "Sryalan"
+            },
+            {
+              "count": 56,
+              "percentage": 0.72,
+              "value": "GMown E"
+            }
+          ]
+        },
+        {
+          "cardinality": 2117,
+          "column": "total_sqft",
+          "dominant_category": {
+            "count": 843,
+            "percentage": 6.33,
+            "value": "1200"
+          },
+          "dominant_percentage": 6.33,
+          "entropy": 0.839,
+          "top_categories": [
+            {
+              "count": 843,
+              "percentage": 6.33,
+              "value": "1200"
+            },
+            {
+              "count": 221,
+              "percentage": 1.66,
+              "value": "1100"
+            },
+            {
+              "count": 205,
+              "percentage": 1.54,
+              "value": "1500"
+            },
+            {
+              "count": 196,
+              "percentage": 1.47,
+              "value": "2400"
+            },
+            {
+              "count": 180,
+              "percentage": 1.35,
+              "value": "600"
+            }
+          ]
+        }
+      ],
+      "numeric_features": [
+        {
+          "column": "bath",
+          "kurtosis": 62.146,
+          "kurtosis_flag": "extreme",
+          "outlier_percentage": 7.84,
+          "outliers": {
+            "count": 1039,
+            "lower_bound": 0.5,
+            "percentage": 7.84,
+            "upper_bound": 4.5
+          },
+          "skewness": 4.227,
+          "skewness_flag": "high",
+          "statistics": {
+            "max": 40.0,
+            "mean": 2.6926,
+            "median": 2.0,
+            "min": 1.0,
+            "std": 1.3415
+          }
+        },
+        {
+          "column": "balcony",
+          "kurtosis": -0.544,
+          "kurtosis_flag": "normal",
+          "outlier_percentage": 0.0,
+          "outliers": {
+            "count": 0,
+            "lower_bound": -0.5,
+            "percentage": 0.0,
+            "upper_bound": 3.5
+          },
+          "skewness": 0.006,
+          "skewness_flag": "low",
+          "statistics": {
+            "max": 3.0,
+            "mean": 1.5844,
+            "median": 2.0,
+            "min": 0.0,
+            "std": 0.8173
+          }
+        }
+      ],
+      "summary": {
+        "categorical_count": 6,
+        "dominated_categorical": 0,
+        "numeric_count": 2,
+        "outlier_features": 1,
+        "skewed_features": 1,
+        "total_analyzed": 8
+      }
+    },
+    "features": {
+      "constant_features": [],
+      "high_cardinality_features": [],
+      "near_constant_features": [],
+      "redundant_features": [],
+      "summary": {
+        "quality_issues": 0,
+        "redundant_pairs": 0,
+        "total_features": 8
+      }
+    },
+    "imbalance": {
+      "distribution": {
+        "skewness": 8.064,
+        "skewness_flag": "high"
+      },
+      "exists": true,
+      "outliers": {
+        "count": 1276,
+        "lower_bound": -55.0,
+        "percentage": 9.58,
+        "upper_bound": 225.0
+      },
+      "statistics": {
+        "max": 3600.0,
+        "mean": 112.5656,
+        "median": 72.0,
+        "min": 8.0,
+        "range": 3592.0,
+        "std": 148.9717
+      },
+      "task_type": "regression"
+    },
+    "leakage": {
+      "correlation_analysis": [
+        {
+          "correlation": 0.4563,
+          "feature": "bath"
+        },
+        {
+          "correlation": 0.1204,
+          "feature": "balcony"
+        }
+      ],
+      "exists": true,
+      "leakage_features": [],
+      "summary": {
+        "critical_leakage": 0,
+        "high_risk_leakage": 0,
+        "total_features_analyzed": 8,
+        "total_suspicious": 0
+      },
+      "task_type": "regression"
+    },
+    "metadata": {
+      "columns": [
+        "area_type",
+        "availability",
+        "location",
+        "size",
+        "society",
+        "total_sqft",
+        "bath",
+        "balcony",
+        "price"
+      ],
+      "dtypes": {
+        "area_type": "object",
+        "availability": "object",
+        "balcony": "float64",
+        "bath": "float64",
+        "location": "object",
+        "price": "float64",
+        "size": "object",
+        "society": "object",
+        "total_sqft": "object"
+      },
+      "filename": "Bengaluru_House_Data.csv",
+      "phase": "complete",
+      "target_column": "price"
+    },
+    "missing": {
+      "column_analysis": [
+        {
+          "column": "society",
+          "missing_count": 5502,
+          "missing_percentage": 41.31,
+          "severity": "high"
+        },
+        {
+          "column": "balcony",
+          "missing_count": 609,
+          "missing_percentage": 4.57,
+          "severity": "low"
+        },
+        {
+          "column": "bath",
+          "missing_count": 73,
+          "missing_percentage": 0.55,
+          "severity": "low"
+        },
+        {
+          "column": "size",
+          "missing_count": 16,
+          "missing_percentage": 0.12,
+          "severity": "low"
+        },
+        {
+          "column": "location",
+          "missing_count": 1,
+          "missing_percentage": 0.01,
+          "severity": "low"
+        },
+        {
+          "column": "area_type",
+          "missing_count": 0,
+          "missing_percentage": 0.0,
+          "severity": "low"
+        },
+        {
+          "column": "availability",
+          "missing_count": 0,
+          "missing_percentage": 0.0,
+          "severity": "low"
+        },
+        {
+          "column": "total_sqft",
+          "missing_count": 0,
+          "missing_percentage": 0.0,
+          "severity": "low"
+        },
+        {
+          "column": "price",
+          "missing_count": 0,
+          "missing_percentage": 0.0,
+          "severity": "low"
+        }
+      ],
+      "row_analysis": {
+        "extreme_missing_percentage": 0.0,
+        "extreme_missing_rows": 0
+      },
+      "summary": {
+        "columns_high_missing": 1,
+        "columns_with_missing": 5,
+        "total_columns": 9
+      },
+      "target_analysis": {
+        "critical": false,
+        "exists": true,
+        "missing_count": 0,
+        "missing_percentage": 0.0
+      }
+    },
+    "profile": {
+      "column_types": {
+        "categorical": [
+          "area_type",
+          "availability",
+          "location",
+          "size",
+          "society",
+          "total_sqft"
+        ],
+        "datetime": [],
+        "numeric": [
+          "bath",
+          "balcony",
+          "price"
+        ]
+      },
+      "dtypes": {
+        "columns": {
+          "area_type": "object",
+          "availability": "object",
+          "balcony": "float64",
+          "bath": "float64",
+          "location": "object",
+          "price": "float64",
+          "size": "object",
+          "society": "object",
+          "total_sqft": "object"
+        },
+        "summary": {
+          "float64": 3,
+          "object": 6
+        }
+      },
+      "duplicates": {
+        "count": 529,
+        "percentage": 3.97
+      },
+      "memory": {
+        "bytes": 4882703,
+        "mb": 4.66
+      },
+      "missing": {
+        "missing_cells": 6201,
+        "missing_percentage": 5.17,
+        "total_cells": 119880
+      },
+      "shape": {
+        "columns": 9,
+        "rows": 13320
+      }
+    }
+  },
+  "grade": "C",
+  "health_score": 76.8,
+  "recommendations": [
+    {
+      "actions": [
+        "Collect more training data",
+        "Use cross-validation for model selection",
+        "Add regularization (L1/L2)",
+        "Reduce model complexity"
+      ],
+      "category": "Model Generalization",
+      "priority": "high"
+    }
+  ],
+  "success": true,
+  "summary": {
+    "analysis_phase": "complete",
+    "dataset_shape": {
+      "columns": 9,
+      "rows": 13320
+    },
+    "duplicate_percentage": 3.97,
+    "has_target": false,
+    "memory_usage": {
+      "bytes": 4882703,
+      "mb": 4.66
+    },
+    "missing_percentage": 5.17
+  },
+  "top_risks": [
+    {
+      "action": "Increase data size, reduce model complexity, or add regularization",
+      "description": "Train-test performance gap: 21.93%",
+      "impact": "Model will not generalize to new data",
+      "priority": 1,
+      "severity": "critical",
+      "title": "Severe Overfitting Detected",
+      "type": "SEVERE_OVERFITTING"
+    }
+  ],
+  "verdict": {
+    "color": "blue",
+    "message": "Dataset is in good health with minor issues. Safe to train after reviewing warnings.",
+    "safe_to_train": true,
+    "status": "GOOD"
+  }
+}
