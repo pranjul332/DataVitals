@@ -10,7 +10,7 @@ from core.features import FeatureQuality
 from core.distribution import DistributionAnalyzer
 from core.imbalance import ImbalanceAnalyzer
 from core.leakage import LeakageDetector
-
+from core.baseline import BaselineModel
 
 app = Flask(__name__)
 CORS(app)
@@ -101,6 +101,9 @@ def analyze_dataset():
             leakage_detector = LeakageDetector(df, target_col)
             report['leakage'] = leakage_detector.analyze()
             
+            # 7. Baseline Sanity Model
+            baseline_model = BaselineModel(df, target_col)
+            report['baseline'] = baseline_model.analyze()
             
         except Exception as e:
             return jsonify({
