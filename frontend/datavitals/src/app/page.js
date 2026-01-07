@@ -9,6 +9,9 @@ import {
   AlertTriangle,
   CheckCircle,
   Layers,
+  Shield,
+  Target,
+  TrendingUp,
 } from "lucide-react";
 
 export default function Component() {
@@ -48,6 +51,14 @@ export default function Component() {
   const handleUpload = async () => {
     if (!file) return;
 
+    // Validate target column is provided
+    if (!targetColumn.trim()) {
+      setError(
+        "Please specify a target column for comprehensive analysis including leakage detection and baseline modeling"
+      );
+      return;
+    }
+
     setUploading(true);
     setAnalyzing(true);
     setError(null);
@@ -55,9 +66,7 @@ export default function Component() {
     try {
       const formData = new FormData();
       formData.append("file", file);
-      if (targetColumn.trim()) {
-        formData.append("target_column", targetColumn.trim());
-      }
+      formData.append("target_column", targetColumn.trim());
 
       const response = await fetch("http://localhost:5000/analyze", {
         method: "POST",
@@ -65,8 +74,7 @@ export default function Component() {
       });
 
       const data = await response.json();
-      console.log(data);
-      
+
       setUploading(false);
       setAnalyzing(false);
 
@@ -98,6 +106,22 @@ export default function Component() {
     return "text-gray-600 bg-gray-50";
   };
 
+  const getRiskColor = (risk) => {
+    if (risk === "critical") return "bg-red-100 text-red-700 border-red-300";
+    if (risk === "high")
+      return "bg-orange-100 text-orange-700 border-orange-300";
+    return "bg-yellow-100 text-yellow-700 border-yellow-300";
+  };
+
+  const getOverfittingColor = (severity) => {
+    if (severity === "severe") return "bg-red-50 border-red-300 text-red-800";
+    if (severity === "moderate")
+      return "bg-yellow-50 border-yellow-300 text-yellow-800";
+    if (severity === "mild")
+      return "bg-orange-50 border-orange-300 text-orange-800";
+    return "bg-green-50 border-green-300 text-green-800";
+  };
+
   // Safe access helpers
   const safeGet = (obj, path, defaultValue = 0) =>
     path.split(".").reduce((acc, key) => acc?.[key], obj) ?? defaultValue;
@@ -115,7 +139,8 @@ export default function Component() {
             CSV Data Health Analyzer
           </h1>
           <p className="text-gray-600">
-            Upload your CSV file to get comprehensive data quality insights
+            Upload your CSV file with target column for comprehensive ML-ready
+            analysis
           </p>
         </div>
 
@@ -171,17 +196,19 @@ export default function Component() {
 
                 <div className="mt-4">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Target Column (Optional)
+                    Target Column <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="text"
                     value={targetColumn}
                     onChange={(e) => setTargetColumn(e.target.value)}
-                    placeholder="e.g., price, target, label"
+                    placeholder="e.g., price, target, label, outcome"
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                    required
                   />
                   <p className="text-xs text-gray-500 mt-1">
-                    Specify the target/outcome column for additional analysis
+                    <strong>Required:</strong> Specify your target/outcome
+                    column for leakage detection and baseline modeling
                   </p>
                 </div>
               </div>
@@ -189,7 +216,7 @@ export default function Component() {
 
             <button
               onClick={handleUpload}
-              disabled={!file || uploading}
+              disabled={!file || uploading || !targetColumn.trim()}
               className="w-full mt-6 bg-indigo-600 text-white py-4 px-6 rounded-lg font-semibold text-lg hover:bg-indigo-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors shadow-lg hover:shadow-xl"
             >
               {uploading
@@ -205,7 +232,7 @@ export default function Component() {
                   <span>
                     {uploading
                       ? "Uploading file..."
-                      : "Running comprehensive analysis..."}
+                      : "Running comprehensive ML-ready analysis..."}
                   </span>
                 </div>
                 <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
@@ -270,6 +297,341 @@ export default function Component() {
                 </div>
               </div>
             </div>
+
+            {/* Leakage Detection - PHASE 3 */}
+            {insights?.leakage?.exists && (
+              <div className="bg-white rounded-2xl shadow-xl p-8 border-2 border-red-200">
+                <div className="flex items-center gap-3 mb-6">
+                  <Shield className="w-8 h-8 text-red-600" />
+                  <div>
+                    <h3 className="text-xl font-bold text-gray-900">
+                      🔥 Data Leakage Detection
+                    </h3>
+                    <p className="text-sm text-gray-600">
+                      Critical analysis to identify features that may leak
+                      target information
+                    </p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-3 gap-4 mb-6">
+                  <div className="bg-red-50 p-4 rounded-lg border border-red-200">
+                    <p className="text-sm text-gray-600 mb-1">
+                      Critical Leakage
+                    </p>
+                    <p className="text-3xl font-bold text-red-600">
+                      {safeGet(insights, "leakage.summary.critical_leakage", 0)}
+                    </p>
+                  </div>
+                  <div className="bg-orange-50 p-4 rounded-lg border border-orange-200">
+                    <p className="text-sm text-gray-600 mb-1">High Risk</p>
+                    <p className="text-3xl font-bold text-orange-600">
+                      {safeGet(
+                        insights,
+                        "leakage.summary.high_risk_leakage",
+                        0
+                      )}
+                    </p>
+                  </div>
+                  <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                    <p className="text-sm text-gray-600 mb-1">
+                      Features Analyzed
+                    </p>
+                    <p className="text-3xl font-bold text-blue-600">
+                      {safeGet(
+                        insights,
+                        "leakage.summary.total_features_analyzed",
+                        0
+                      )}
+                    </p>
+                  </div>
+                </div>
+
+                {safeArray(insights?.leakage?.leakage_features).length > 0 && (
+                  <div className="mb-6">
+                    <h4 className="font-semibold text-gray-900 mb-3">
+                      ⚠️ Suspicious Features
+                    </h4>
+                    <div className="space-y-2 max-h-96 overflow-y-auto">
+                      {safeArray(insights.leakage.leakage_features).map(
+                        (feat, idx) => (
+                          <div
+                            key={idx}
+                            className={`p-4 rounded-lg border ${getRiskColor(
+                              feat.risk
+                            )}`}
+                          >
+                            <div className="flex justify-between items-start mb-2">
+                              <div>
+                                <span className="font-bold text-lg">
+                                  {feat.feature}
+                                </span>
+                                <span
+                                  className={`ml-3 text-xs px-2 py-1 rounded font-semibold uppercase ${getRiskColor(
+                                    feat.risk
+                                  )}`}
+                                >
+                                  {feat.risk} RISK
+                                </span>
+                              </div>
+                              <span className="text-xl font-bold">
+                                {(feat.score * 100).toFixed(1)}%
+                              </span>
+                            </div>
+                            <p className="text-sm">
+                              Detection Method:{" "}
+                              <span className="font-medium">
+                                {feat.method.replace(/_/g, " ")}
+                              </span>
+                            </p>
+                          </div>
+                        )
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {safeArray(insights?.leakage?.correlation_analysis).length >
+                  0 && (
+                  <div>
+                    <h4 className="font-semibold text-gray-900 mb-3">
+                      Top Feature-Target Correlations
+                    </h4>
+                    <div className="space-y-2 max-h-64 overflow-y-auto">
+                      {safeArray(insights.leakage.correlation_analysis).map(
+                        (corr, idx) => (
+                          <div
+                            key={idx}
+                            className="flex items-center gap-3 bg-gray-50 p-3 rounded-lg"
+                          >
+                            <span className="font-medium text-gray-900 flex-1">
+                              {corr.feature}
+                            </span>
+                            <div className="flex-1 bg-gray-200 rounded-full h-2">
+                              <div
+                                className="bg-indigo-500 h-2 rounded-full"
+                                style={{ width: `${corr.correlation * 100}%` }}
+                              />
+                            </div>
+                            <span className="text-sm font-bold text-gray-700 w-16 text-right">
+                              {(corr.correlation * 100).toFixed(1)}%
+                            </span>
+                          </div>
+                        )
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Baseline Model - PHASE 3 */}
+            {insights?.baseline?.exists && (
+              <div className="bg-white rounded-2xl shadow-xl p-8 border-2 border-green-200">
+                <div className="flex items-center gap-3 mb-6">
+                  <Target className="w-8 h-8 text-green-600" />
+                  <div>
+                    <h3 className="text-xl font-bold text-gray-900">
+                      🎯 Baseline Model Performance
+                    </h3>
+                    <p className="text-sm text-gray-600">
+                      Sanity check using {insights.baseline.model}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                  {insights.baseline.task_type === "classification" ? (
+                    <>
+                      <div className="bg-green-50 p-4 rounded-lg">
+                        <p className="text-sm text-gray-600 mb-1">
+                          Train Accuracy
+                        </p>
+                        <p className="text-2xl font-bold text-green-600">
+                          {(
+                            safeGet(
+                              insights,
+                              "baseline.metrics.train_accuracy",
+                              0
+                            ) * 100
+                          ).toFixed(1)}
+                          %
+                        </p>
+                      </div>
+                      <div className="bg-blue-50 p-4 rounded-lg">
+                        <p className="text-sm text-gray-600 mb-1">
+                          Test Accuracy
+                        </p>
+                        <p className="text-2xl font-bold text-blue-600">
+                          {(
+                            safeGet(
+                              insights,
+                              "baseline.metrics.test_accuracy",
+                              0
+                            ) * 100
+                          ).toFixed(1)}
+                          %
+                        </p>
+                      </div>
+                      {safeGet(insights, "baseline.metrics.test_auc") && (
+                        <div className="bg-purple-50 p-4 rounded-lg">
+                          <p className="text-sm text-gray-600 mb-1">Test AUC</p>
+                          <p className="text-2xl font-bold text-purple-600">
+                            {(
+                              safeGet(
+                                insights,
+                                "baseline.metrics.test_auc",
+                                0
+                              ) * 100
+                            ).toFixed(1)}
+                            %
+                          </p>
+                        </div>
+                      )}
+                      <div className="bg-orange-50 p-4 rounded-lg">
+                        <p className="text-sm text-gray-600 mb-1">
+                          Accuracy Gap
+                        </p>
+                        <p className="text-2xl font-bold text-orange-600">
+                          {(
+                            safeGet(
+                              insights,
+                              "baseline.metrics.accuracy_gap",
+                              0
+                            ) * 100
+                          ).toFixed(1)}
+                          %
+                        </p>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="bg-green-50 p-4 rounded-lg">
+                        <p className="text-sm text-gray-600 mb-1">Train R²</p>
+                        <p className="text-2xl font-bold text-green-600">
+                          {safeGet(
+                            insights,
+                            "baseline.metrics.train_r2",
+                            0
+                          ).toFixed(3)}
+                        </p>
+                      </div>
+                      <div className="bg-blue-50 p-4 rounded-lg">
+                        <p className="text-sm text-gray-600 mb-1">Test R²</p>
+                        <p className="text-2xl font-bold text-blue-600">
+                          {safeGet(
+                            insights,
+                            "baseline.metrics.test_r2",
+                            0
+                          ).toFixed(3)}
+                        </p>
+                      </div>
+                      <div className="bg-purple-50 p-4 rounded-lg">
+                        <p className="text-sm text-gray-600 mb-1">Test RMSE</p>
+                        <p className="text-2xl font-bold text-purple-600">
+                          {safeGet(
+                            insights,
+                            "baseline.metrics.test_rmse",
+                            0
+                          ).toFixed(2)}
+                        </p>
+                      </div>
+                      <div className="bg-orange-50 p-4 rounded-lg">
+                        <p className="text-sm text-gray-600 mb-1">R² Gap</p>
+                        <p className="text-2xl font-bold text-orange-600">
+                          {safeGet(
+                            insights,
+                            "baseline.metrics.r2_gap",
+                            0
+                          ).toFixed(3)}
+                        </p>
+                      </div>
+                    </>
+                  )}
+                </div>
+
+                <div
+                  className={`p-4 rounded-lg border-2 mb-6 ${getOverfittingColor(
+                    insights.baseline.overfitting?.severity
+                  )}`}
+                >
+                  <p className="font-semibold text-lg mb-1">
+                    Overfitting Assessment:{" "}
+                    <span className="uppercase">
+                      {insights.baseline.overfitting?.severity}
+                    </span>
+                  </p>
+                  <p className="text-sm">
+                    Performance gap between train and test:{" "}
+                    {(
+                      safeGet(insights, "baseline.overfitting.gap", 0) * 100
+                    ).toFixed(2)}
+                    %
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4 mb-6">
+                  <div className="bg-gray-50 p-4 rounded-lg">
+                    <p className="text-sm text-gray-600 mb-1">Noise Estimate</p>
+                    <p className="text-xl font-bold text-gray-900">
+                      {(
+                        safeGet(insights, "baseline.noise_estimate", 0) * 100
+                      ).toFixed(1)}
+                      %
+                    </p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Estimated data noise level
+                    </p>
+                  </div>
+                  <div className="bg-gray-50 p-4 rounded-lg">
+                    <p className="text-sm text-gray-600 mb-1">Data Split</p>
+                    <p className="text-xl font-bold text-gray-900">
+                      {safeGet(insights, "baseline.data_split.train_size", 0)} /{" "}
+                      {safeGet(insights, "baseline.data_split.test_size", 0)}
+                    </p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Train / Test samples
+                    </p>
+                  </div>
+                </div>
+
+                {safeArray(insights?.baseline?.feature_importance).length >
+                  0 && (
+                  <div>
+                    <h4 className="font-semibold text-gray-900 mb-3">
+                      <TrendingUp className="w-5 h-5 inline mr-2" />
+                      Top 10 Important Features
+                    </h4>
+                    <div className="space-y-2">
+                      {safeArray(insights.baseline.feature_importance).map(
+                        (feat, idx) => (
+                          <div
+                            key={idx}
+                            className="flex items-center gap-3 bg-gray-50 p-3 rounded-lg"
+                          >
+                            <span className="text-sm font-bold text-gray-500 w-6">
+                              #{idx + 1}
+                            </span>
+                            <span className="font-medium text-gray-900 flex-1">
+                              {feat.feature}
+                            </span>
+                            <div className="flex-1 bg-gray-200 rounded-full h-2">
+                              <div
+                                className="bg-green-500 h-2 rounded-full"
+                                style={{ width: `${feat.importance * 100}%` }}
+                              />
+                            </div>
+                            <span className="text-sm font-bold text-gray-700 w-16 text-right">
+                              {(feat.importance * 100).toFixed(1)}%
+                            </span>
+                          </div>
+                        )
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
 
             <div className="bg-white rounded-2xl shadow-xl p-8">
               <div className="flex items-center gap-3 mb-6">
@@ -516,7 +878,6 @@ export default function Component() {
               </div>
             </div>
 
-            {/* Distribution & Outlier Analysis */}
             {insights?.distribution && (
               <div className="bg-white rounded-2xl shadow-xl p-8">
                 <div className="flex items-center gap-3 mb-6">
@@ -573,7 +934,6 @@ export default function Component() {
                   </div>
                 </div>
 
-                {/* Numeric Features */}
                 {safeArray(insights?.distribution?.numeric_features).length >
                   0 && (
                   <div className="mb-6">
@@ -625,14 +985,13 @@ export default function Component() {
                   </div>
                 )}
 
-                {/* Categorical Features */}
                 {safeArray(insights?.distribution?.categorical_features)
                   .length > 0 && (
                   <div>
-                    <h4 className="font-bold text-black mb-3">
+                    <h4 className="font-semibold text-gray-900 mb-3">
                       Categorical Feature Distributions
                     </h4>
-                    <div className="space-y-3 max-h-96 overflow-y-auto text-gray-900">
+                    <div className="space-y-3 max-h-96 overflow-y-auto">
                       {safeArray(
                         insights.distribution.categorical_features
                       ).map((feat, idx) => (
@@ -678,7 +1037,7 @@ export default function Component() {
                 )}
               </div>
             )}
-            {/* Class Imbalance Analysis */}
+
             {insights?.imbalance?.exists && (
               <div className="bg-white rounded-2xl shadow-xl p-8">
                 <div className="flex items-center gap-3 mb-6">
@@ -861,6 +1220,7 @@ export default function Component() {
                 )}
               </div>
             )}
+
             <button
               onClick={resetUpload}
               className="w-full bg-gray-100 text-gray-700 py-4 px-6 rounded-lg font-semibold hover:bg-gray-200 transition-colors"
