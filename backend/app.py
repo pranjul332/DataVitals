@@ -9,6 +9,8 @@ from core.missing import MissingAnalyzer
 from core.features import FeatureQuality
 from core.distribution import DistributionAnalyzer
 from core.imbalance import ImbalanceAnalyzer
+from core.leakage import LeakageDetector
+
 
 app = Flask(__name__)
 CORS(app)
@@ -16,14 +18,14 @@ CORS(app)
 @app.route('/health', methods=['GET'])
 def health_check():
     """Simple health check endpoint."""
-    return jsonify({'status': 'healthy', 'version': '2.0.0'})
+    return jsonify({'status': 'healthy', 'version': '3.0.0'})
 
 @app.route('/analyze', methods=['POST'])
 def analyze_dataset():
     """
     Main analysis endpoint.
     Accepts: CSV file + optional target column
-    Returns: Health report (Phase 1 + Phase 2)
+    Returns: Complete health report (Phase 1 + 2 + 3)
     """
     try:
         # Validate request
@@ -65,7 +67,7 @@ def analyze_dataset():
                 'available_columns': list(df.columns)
             }), 400
         
-        # Run Full Analysis (Phase 1 + Phase 2)
+        # Run Full Analysis (Phase 1 + 2 + 3)
         report = {}
         
         try:
@@ -93,6 +95,13 @@ def analyze_dataset():
             imbalance_analyzer = ImbalanceAnalyzer(df, target_col)
             report['imbalance'] = imbalance_analyzer.analyze()
             
+            # === PHASE 3: ML-BASED RISK DETECTION ===
+            
+            # 6. Leakage Detection (CORE FLEX)
+            leakage_detector = LeakageDetector(df, target_col)
+            report['leakage'] = leakage_detector.analyze()
+            
+            
         except Exception as e:
             return jsonify({
                 'error': f'Analysis failed: {str(e)}',
@@ -103,7 +112,7 @@ def analyze_dataset():
         report['metadata'] = {
             'filename': file.filename,
             'target_column': target_col,
-            'phase': 'phase_2_complete',
+            'phase': 'phase_3_complete',
             'columns': list(df.columns),
             'dtypes': {col: str(dtype) for col, dtype in df.dtypes.items()}
         }

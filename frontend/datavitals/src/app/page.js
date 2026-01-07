@@ -65,7 +65,8 @@ export default function Component() {
       });
 
       const data = await response.json();
-
+      console.log(data);
+      
       setUploading(false);
       setAnalyzing(false);
 
