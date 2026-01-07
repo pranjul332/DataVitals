@@ -101,7 +101,6 @@ export default function Component() {
   const safeGet = (obj, path, defaultValue = 0) =>
     path.split(".").reduce((acc, key) => acc?.[key], obj) ?? defaultValue;
 
-
   const safeArray = (arr) => (Array.isArray(arr) ? arr : []);
 
   return (
@@ -516,6 +515,351 @@ export default function Component() {
               </div>
             </div>
 
+            {/* Distribution & Outlier Analysis */}
+            {insights?.distribution && (
+              <div className="bg-white rounded-2xl shadow-xl p-8">
+                <div className="flex items-center gap-3 mb-6">
+                  <BarChart3 className="w-8 h-8 text-indigo-600" />
+                  <h3 className="text-xl font-bold text-gray-900">
+                    Distribution & Outlier Analysis
+                  </h3>
+                </div>
+
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                  <div className="bg-blue-50 p-4 rounded-lg">
+                    <p className="text-sm text-gray-600 mb-1">Total Features</p>
+                    <p className="text-2xl font-bold text-blue-600">
+                      {safeGet(
+                        insights,
+                        "distribution.summary.total_analyzed",
+                        0
+                      )}
+                    </p>
+                  </div>
+                  <div className="bg-yellow-50 p-4 rounded-lg">
+                    <p className="text-sm text-gray-600 mb-1">
+                      Skewed Features
+                    </p>
+                    <p className="text-2xl font-bold text-yellow-600">
+                      {safeGet(
+                        insights,
+                        "distribution.summary.skewed_features",
+                        0
+                      )}
+                    </p>
+                  </div>
+                  <div className="bg-red-50 p-4 rounded-lg">
+                    <p className="text-sm text-gray-600 mb-1">
+                      Outlier Features
+                    </p>
+                    <p className="text-2xl font-bold text-red-600">
+                      {safeGet(
+                        insights,
+                        "distribution.summary.outlier_features",
+                        0
+                      )}
+                    </p>
+                  </div>
+                  <div className="bg-orange-50 p-4 rounded-lg">
+                    <p className="text-sm text-gray-600 mb-1">Dominated Cat.</p>
+                    <p className="text-2xl font-bold text-orange-600">
+                      {safeGet(
+                        insights,
+                        "distribution.summary.dominated_categorical",
+                        0
+                      )}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Numeric Features */}
+                {safeArray(insights?.distribution?.numeric_features).length >
+                  0 && (
+                  <div className="mb-6">
+                    <h4 className="font-semibold text-gray-900 mb-3">
+                      Numeric Feature Distributions
+                    </h4>
+                    <div className="space-y-3 max-h-96 overflow-y-auto">
+                      {safeArray(insights.distribution.numeric_features).map(
+                        (feat, idx) => (
+                          <div key={idx} className="bg-gray-50 p-4 rounded-lg">
+                            <div className="flex justify-between items-start mb-2">
+                              <span className="font-medium text-gray-900">
+                                {feat.column || "Unknown"}
+                              </span>
+                              <div className="flex gap-2">
+                                {feat.skewness_flag !== "low" && (
+                                  <span
+                                    className={`text-xs px-2 py-1 rounded ${
+                                      feat.skewness_flag === "high"
+                                        ? "bg-red-100 text-red-700"
+                                        : "bg-yellow-100 text-yellow-700"
+                                    }`}
+                                  >
+                                    {feat.skewness_flag} skew
+                                  </span>
+                                )}
+                                {feat.outlier_percentage > 5 && (
+                                  <span className="text-xs px-2 py-1 rounded bg-orange-100 text-orange-700">
+                                    {feat.outlier_percentage}% outliers
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                            <div className="grid grid-cols-2 md:grid-cols-5 gap-2 text-xs text-gray-600">
+                              <div>
+                                Mean: {feat.statistics?.mean?.toFixed(2)}
+                              </div>
+                              <div>
+                                Median: {feat.statistics?.median?.toFixed(2)}
+                              </div>
+                              <div>Std: {feat.statistics?.std?.toFixed(2)}</div>
+                              <div>Skew: {feat.skewness?.toFixed(2)}</div>
+                              <div>Outliers: {feat.outliers?.count || 0}</div>
+                            </div>
+                          </div>
+                        )
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Categorical Features */}
+                {safeArray(insights?.distribution?.categorical_features)
+                  .length > 0 && (
+                  <div>
+                    <h4 className="font-bold text-black mb-3">
+                      Categorical Feature Distributions
+                    </h4>
+                    <div className="space-y-3 max-h-96 overflow-y-auto text-gray-900">
+                      {safeArray(
+                        insights.distribution.categorical_features
+                      ).map((feat, idx) => (
+                        <div key={idx} className="bg-gray-50 p-4 rounded-lg">
+                          <div className="flex justify-between items-start mb-2">
+                            <span className="font-medium text-gray-900">
+                              {feat.column || "Unknown"}
+                            </span>
+                            <span className="text-xs px-2 py-1 rounded bg-purple-100 text-purple-700">
+                              {feat.cardinality} unique
+                            </span>
+                          </div>
+                          <div className="text-sm text-gray-600 mb-2">
+                            Dominant:{" "}
+                            <span className="font-medium">
+                              {feat.dominant_category?.value}
+                            </span>{" "}
+                            ({feat.dominant_category?.percentage}%)
+                          </div>
+                          <div className="space-y-1">
+                            {safeArray(feat.top_categories).map((cat, cidx) => (
+                              <div
+                                key={cidx}
+                                className="flex items-center gap-2 text-xs"
+                              >
+                                <div className="w-24 truncate">{cat.value}</div>
+                                <div className="flex-1 bg-gray-200 rounded-full h-2">
+                                  <div
+                                    className="bg-indigo-500 h-2 rounded-full"
+                                    style={{ width: `${cat.percentage}%` }}
+                                  />
+                                </div>
+                                <div className="w-12 text-right text-gray-600">
+                                  {cat.percentage}%
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+            {/* Class Imbalance Analysis */}
+            {insights?.imbalance?.exists && (
+              <div className="bg-white rounded-2xl shadow-xl p-8">
+                <div className="flex items-center gap-3 mb-6">
+                  <AlertCircle className="w-8 h-8 text-purple-600" />
+                  <h3 className="text-xl font-bold text-gray-900">
+                    Target Variable Analysis
+                  </h3>
+                </div>
+
+                {insights.imbalance.task_type === "classification" && (
+                  <div>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                      <div className="bg-purple-50 p-4 rounded-lg">
+                        <p className="text-sm text-gray-600 mb-1">Task Type</p>
+                        <p className="text-lg font-bold text-purple-600 capitalize">
+                          {insights.imbalance.classification_type}
+                        </p>
+                      </div>
+                      <div className="bg-blue-50 p-4 rounded-lg">
+                        <p className="text-sm text-gray-600 mb-1">Classes</p>
+                        <p className="text-2xl font-bold text-blue-600">
+                          {insights.imbalance.n_classes}
+                        </p>
+                      </div>
+                      <div className="bg-green-50 p-4 rounded-lg">
+                        <p className="text-sm text-gray-600 mb-1">Majority</p>
+                        <p className="text-2xl font-bold text-green-600">
+                          {insights.imbalance.imbalance?.majority_percentage}%
+                        </p>
+                      </div>
+                      <div className="bg-red-50 p-4 rounded-lg">
+                        <p className="text-sm text-gray-600 mb-1">
+                          Imbalance Ratio
+                        </p>
+                        <p className="text-2xl font-bold text-red-600">
+                          {insights.imbalance.imbalance?.ratio}:1
+                        </p>
+                      </div>
+                    </div>
+
+                    <div
+                      className={`p-4 rounded-lg mb-6 ${
+                        insights.imbalance.imbalance?.severity === "severe"
+                          ? "bg-red-50 border border-red-200"
+                          : insights.imbalance.imbalance?.severity ===
+                            "moderate"
+                          ? "bg-yellow-50 border border-yellow-200"
+                          : "bg-green-50 border border-green-200"
+                      }`}
+                    >
+                      <p className="font-semibold mb-1">
+                        Imbalance Severity:{" "}
+                        <span className="capitalize">
+                          {insights.imbalance.imbalance?.severity}
+                        </span>
+                      </p>
+                      <p className="text-sm">
+                        Majority class:{" "}
+                        <span className="font-medium">
+                          {insights.imbalance.imbalance?.majority_class}
+                        </span>{" "}
+                        ({insights.imbalance.imbalance?.majority_count} samples)
+                        {" • "}
+                        Minority class:{" "}
+                        <span className="font-medium">
+                          {insights.imbalance.imbalance?.minority_class}
+                        </span>{" "}
+                        ({insights.imbalance.imbalance?.minority_count} samples)
+                      </p>
+                    </div>
+
+                    <h4 className="font-semibold text-gray-900 mb-3">
+                      Class Distribution
+                    </h4>
+                    <div className="space-y-2">
+                      {safeArray(insights.imbalance.class_distribution).map(
+                        (cls, idx) => (
+                          <div key={idx} className="flex items-center gap-3">
+                            <div className="w-32 truncate text-sm font-medium">
+                              {cls.class}
+                            </div>
+                            <div className="flex-1 bg-gray-200 rounded-full h-6">
+                              <div
+                                className="bg-gradient-to-r from-indigo-500 to-purple-500 h-6 rounded-full flex items-center justify-end pr-2"
+                                style={{ width: `${cls.percentage}%` }}
+                              >
+                                <span className="text-xs text-white font-medium">
+                                  {cls.percentage}%
+                                </span>
+                              </div>
+                            </div>
+                            <div className="w-24 text-right text-sm text-gray-600">
+                              {cls.count.toLocaleString()}
+                            </div>
+                          </div>
+                        )
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {insights.imbalance.task_type === "regression" && (
+                  <div>
+                    <div className="bg-blue-50 p-4 rounded-lg mb-6">
+                      <p className="font-semibold text-blue-900 mb-2">
+                        Regression Target Detected
+                      </p>
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
+                        <div>
+                          <span className="text-gray-600">Mean:</span>
+                          <span className="font-medium ml-2">
+                            {insights.imbalance.statistics?.mean}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-gray-600">Median:</span>
+                          <span className="font-medium ml-2">
+                            {insights.imbalance.statistics?.median}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-gray-600">Std Dev:</span>
+                          <span className="font-medium ml-2">
+                            {insights.imbalance.statistics?.std}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-gray-600">Min:</span>
+                          <span className="font-medium ml-2">
+                            {insights.imbalance.statistics?.min}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-gray-600">Max:</span>
+                          <span className="font-medium ml-2">
+                            {insights.imbalance.statistics?.max}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-gray-600">Range:</span>
+                          <span className="font-medium ml-2">
+                            {insights.imbalance.statistics?.range}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4 mb-6">
+                      <div
+                        className={`p-4 rounded-lg ${
+                          insights.imbalance.distribution?.skewness_flag ===
+                          "high"
+                            ? "bg-red-50 border border-red-200"
+                            : insights.imbalance.distribution?.skewness_flag ===
+                              "moderate"
+                            ? "bg-yellow-50 border border-yellow-200"
+                            : "bg-green-50 border border-green-200"
+                        }`}
+                      >
+                        <p className="text-sm text-gray-600 mb-1">Skewness</p>
+                        <p className="text-2xl font-bold">
+                          {insights.imbalance.distribution?.skewness}
+                        </p>
+                        <p className="text-xs capitalize mt-1">
+                          {insights.imbalance.distribution?.skewness_flag}
+                        </p>
+                      </div>
+
+                      <div className="bg-orange-50 p-4 rounded-lg border border-orange-200">
+                        <p className="text-sm text-gray-600 mb-1">Outliers</p>
+                        <p className="text-2xl font-bold text-orange-600">
+                          {insights.imbalance.outliers?.percentage}%
+                        </p>
+                        <p className="text-xs mt-1">
+                          {insights.imbalance.outliers?.count} outliers detected
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
             <button
               onClick={resetUpload}
               className="w-full bg-gray-100 text-gray-700 py-4 px-6 rounded-lg font-semibold hover:bg-gray-200 transition-colors"
