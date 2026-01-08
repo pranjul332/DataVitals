@@ -12,6 +12,11 @@ import {
   Shield,
   Target,
   TrendingUp,
+  Award,
+  Activity,
+  ThumbsUp,
+  ThumbsDown,
+  AlertOctagon,
 } from "lucide-react";
 
 export default function Component() {
@@ -19,7 +24,7 @@ export default function Component() {
   const [targetColumn, setTargetColumn] = useState("");
   const [uploading, setUploading] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
-  const [insights, setInsights] = useState(null);
+  const [response, setResponse] = useState(null);
   const [error, setError] = useState(null);
 
   const handleFileChange = (e) => {
@@ -51,7 +56,6 @@ export default function Component() {
   const handleUpload = async () => {
     if (!file) return;
 
-    // Validate target column is provided
     if (!targetColumn.trim()) {
       setError(
         "Please specify a target column for comprehensive analysis including leakage detection and baseline modeling"
@@ -68,18 +72,18 @@ export default function Component() {
       formData.append("file", file);
       formData.append("target_column", targetColumn.trim());
 
-      const response = await fetch("http://localhost:5000/analyze", {
+      const res = await fetch("http://localhost:5000/analyze", {
         method: "POST",
         body: formData,
       });
 
-      const data = await response.json();
+      const data = await res.json();
 
       setUploading(false);
       setAnalyzing(false);
 
       if (data.success) {
-        setInsights(data.report);
+        setResponse(data);
       } else {
         setError(data.error || "Analysis failed");
       }
@@ -94,7 +98,7 @@ export default function Component() {
 
   const resetUpload = () => {
     setFile(null);
-    setInsights(null);
+    setResponse(null);
     setError(null);
     setTargetColumn("");
   };
@@ -122,14 +126,33 @@ export default function Component() {
     return "bg-green-50 border-green-300 text-green-800";
   };
 
-  // Safe access helpers
+  const getGradeColor = (grade) => {
+    if (grade === "A") return "bg-green-500 text-white";
+    if (grade === "B") return "bg-blue-500 text-white";
+    if (grade === "C") return "bg-yellow-500 text-white";
+    if (grade === "D") return "bg-orange-500 text-white";
+    return "bg-red-500 text-white";
+  };
+
+  const getVerdictIcon = (status) => {
+    if (status === "excellent")
+      return <ThumbsUp className="w-8 h-8 text-green-600" />;
+    if (status === "good")
+      return <CheckCircle className="w-8 h-8 text-blue-600" />;
+    if (status === "warning")
+      return <AlertTriangle className="w-8 h-8 text-yellow-600" />;
+    return <AlertOctagon className="w-8 h-8 text-red-600" />;
+  };
+
   const safeGet = (obj, path, defaultValue = 0) =>
     path.split(".").reduce((acc, key) => acc?.[key], obj) ?? defaultValue;
 
   const safeArray = (arr) => (Array.isArray(arr) ? arr : []);
 
+  const insights = response?.detailed_analysis;
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 p-8">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 p-8 text-black">
       <div className="max-w-6xl mx-auto">
         <div className="text-center mb-12">
           <div className="flex items-center justify-center mb-4">
@@ -144,7 +167,7 @@ export default function Component() {
           </p>
         </div>
 
-        {!insights ? (
+        {!response ? (
           <div className="bg-white rounded-2xl shadow-xl p-8">
             <div
               onDrop={handleDrop}
@@ -243,21 +266,77 @@ export default function Component() {
           </div>
         ) : (
           <div className="space-y-6">
+            {/* Health Score & Verdict */}
             <div className="bg-white rounded-2xl shadow-xl p-8">
-              <div className="flex items-center gap-3 mb-6">
-                <CheckCircle className="w-8 h-8 text-green-600" />
-                <div>
-                  <h2 className="text-2xl font-bold text-gray-900">
-                    Analysis Complete
-                  </h2>
-                  <p className="text-gray-600">
-                    File: {safeGet(insights, "metadata.filename", "N/A")}
-                  </p>
-                  {safeGet(insights, "metadata.target_column") && (
-                    <p className="text-sm text-indigo-600">
-                      Target: {insights.metadata.target_column}
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-4">
+                  {getVerdictIcon(response.verdict?.status)}
+                  <div>
+                    <h2 className="text-2xl font-bold text-gray-900">
+                      {response.verdict?.message || "Analysis Complete"}
+                    </h2>
+                    <p className="text-gray-600">
+                      File: {safeGet(insights, "metadata.filename", "N/A")}
                     </p>
-                  )}
+                    {safeGet(insights, "metadata.target_column") && (
+                      <p className="text-sm text-indigo-600">
+                        Target: {insights.metadata.target_column}
+                      </p>
+                    )}
+                  </div>
+                </div>
+                <div className="text-center">
+                  <div
+                    className={`w-24 h-24 rounded-full flex items-center justify-center text-3xl font-bold ${getGradeColor(
+                      response.grade
+                    )}`}
+                  >
+                    {response.grade}
+                  </div>
+                  <p className="text-sm text-gray-600 mt-2">Grade</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                <div className="bg-gradient-to-br from-indigo-50 to-purple-50 p-6 rounded-lg">
+                  <div className="flex items-center gap-3 mb-2">
+                    <Activity className="w-6 h-6 text-indigo-600" />
+                    <h3 className="text-lg font-semibold text-gray-900">
+                      Overall Health Score
+                    </h3>
+                  </div>
+                  <p className="text-4xl font-bold text-indigo-600">
+                    {response.health_score?.toFixed(1)}/100
+                  </p>
+                  <p className="text-sm text-gray-600 mt-2">
+                    {response.verdict?.description}
+                  </p>
+                </div>
+
+                <div className="bg-gray-50 p-6 rounded-lg">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-3">
+                    Component Scores
+                  </h3>
+                  <div className="space-y-2">
+                    {Object.entries(response.component_scores || {}).map(
+                      ([key, value]) => (
+                        <div key={key} className="flex items-center gap-2">
+                          <span className="text-sm text-gray-700 capitalize flex-1">
+                            {key.replace(/_/g, " ")}
+                          </span>
+                          <div className="flex-1 bg-gray-200 rounded-full h-2">
+                            <div
+                              className="bg-indigo-500 h-2 rounded-full"
+                              style={{ width: `${value}%` }}
+                            />
+                          </div>
+                          <span className="text-sm font-bold text-gray-700 w-12 text-right">
+                            {value.toFixed(0)}
+                          </span>
+                        </div>
+                      )
+                    )}
+                  </div>
                 </div>
               </div>
 
@@ -298,7 +377,194 @@ export default function Component() {
               </div>
             </div>
 
-            {/* Leakage Detection - PHASE 3 */}
+            {/* Top Risks */}
+            {safeArray(response.top_risks).length > 0 && (
+              <div className="bg-white rounded-2xl shadow-xl p-8 border-2 border-red-200">
+                <div className="flex items-center gap-3 mb-6">
+                  <AlertOctagon className="w-8 h-8 text-red-600" />
+                  <h3 className="text-xl font-bold text-gray-900">
+                    🚨 Top Risks Detected
+                  </h3>
+                </div>
+                <div className="space-y-4">
+                  {safeArray(response.top_risks).map((risk, idx) => (
+                    <div
+                      key={idx}
+                      className="p-5 bg-red-50 border-2 border-red-200 rounded-lg"
+                    >
+                      <div className="flex items-start gap-4">
+                        <div className="flex-shrink-0">
+                          <div className="w-12 h-12 rounded-full bg-red-600 flex items-center justify-center">
+                            <span className="text-white font-bold text-lg">
+                              #{risk.priority || idx + 1}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="flex-1">
+                          <div className="flex items-start justify-between mb-2">
+                            <h4 className="font-bold text-lg text-gray-900">
+                              {risk.title || risk.issue}
+                            </h4>
+                            <div className="flex gap-2 flex-shrink-0 ml-3">
+                              <span
+                                className={`text-xs px-2 py-1 rounded font-semibold uppercase ${
+                                  risk.severity === "critical"
+                                    ? "bg-red-600 text-white"
+                                    : risk.severity === "high"
+                                    ? "bg-orange-500 text-white"
+                                    : "bg-yellow-500 text-white"
+                                }`}
+                              >
+                                {risk.severity}
+                              </span>
+                            </div>
+                          </div>
+                          <p className="text-sm text-gray-700 mb-2">
+                            {risk.description}
+                          </p>
+                          {risk.impact && (
+                            <p className="text-sm text-red-700 font-medium mb-2">
+                              <span className="font-bold">Impact:</span>{" "}
+                              {risk.impact}
+                            </p>
+                          )}
+                          {risk.action && (
+                            <div className="mt-3 p-3 bg-white rounded border border-red-200">
+                              <p className="text-sm font-semibold text-gray-700 mb-1">
+                                💡 Recommended Action:
+                              </p>
+                              <p className="text-sm text-gray-700">
+                                {risk.action}
+                              </p>
+                            </div>
+                          )}
+                          {risk.type && (
+                            <span className="text-xs px-2 py-1 rounded bg-gray-200 text-gray-700 font-mono inline-block mt-2">
+                              Type: {risk.type}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Summary Section */}
+            {response.summary && (
+              <div className="bg-white rounded-2xl shadow-xl p-8">
+                <div className="flex items-center gap-3 mb-6">
+                  <Database className="w-8 h-8 text-indigo-600" />
+                  <h3 className="text-xl font-bold text-gray-900">
+                    📊 Dataset Summary
+                  </h3>
+                </div>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                  <div className="bg-indigo-50 p-4 rounded-lg">
+                    <p className="text-sm text-gray-600 mb-1">Analysis Phase</p>
+                    <p className="text-lg font-bold text-indigo-600 capitalize">
+                      {response.summary.analysis_phase}
+                    </p>
+                  </div>
+                  <div className="bg-blue-50 p-4 rounded-lg">
+                    <p className="text-sm text-gray-600 mb-1">Dataset Shape</p>
+                    <p className="text-lg font-bold text-blue-600">
+                      {response.summary.dataset_shape?.rows?.toLocaleString()} ×{" "}
+                      {response.summary.dataset_shape?.columns}
+                    </p>
+                  </div>
+                  <div className="bg-purple-50 p-4 rounded-lg">
+                    <p className="text-sm text-gray-600 mb-1">Memory Usage</p>
+                    <p className="text-lg font-bold text-purple-600">
+                      {response.summary.memory_usage?.mb?.toFixed(2)} MB
+                    </p>
+                  </div>
+                  <div className="bg-yellow-50 p-4 rounded-lg">
+                    <p className="text-sm text-gray-600 mb-1">Missing Data</p>
+                    <p className="text-lg font-bold text-yellow-600">
+                      {response.summary.missing_percentage?.toFixed(2)}%
+                    </p>
+                  </div>
+                  <div className="bg-orange-50 p-4 rounded-lg">
+                    <p className="text-sm text-gray-600 mb-1">Duplicates</p>
+                    <p className="text-lg font-bold text-orange-600">
+                      {response.summary.duplicate_percentage?.toFixed(2)}%
+                    </p>
+                  </div>
+                  <div className="bg-green-50 p-4 rounded-lg">
+                    <p className="text-sm text-gray-600 mb-1">Target Column</p>
+                    <p className="text-lg font-bold text-green-600">
+                      {response.summary.has_target ? "✓ Provided" : "✗ Missing"}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Recommendations */}
+            {safeArray(response.recommendations).length > 0 && (
+              <div className="bg-white rounded-2xl shadow-xl p-8 border-2 border-blue-200">
+                <div className="flex items-center gap-3 mb-6">
+                  <Award className="w-8 h-8 text-blue-600" />
+                  <h3 className="text-xl font-bold text-gray-900">
+                    💡 Recommendations
+                  </h3>
+                </div>
+                <div className="space-y-4">
+                  {safeArray(response.recommendations).map((rec, idx) => (
+                    <div
+                      key={idx}
+                      className="p-5 bg-blue-50 border-2 border-blue-200 rounded-lg"
+                    >
+                      <div className="flex items-start gap-3 mb-3">
+                        <CheckCircle className="w-6 h-6 text-blue-600 mt-0.5 flex-shrink-0" />
+                        <div className="flex-1">
+                          <div className="flex items-center justify-between mb-2">
+                            <p className="font-bold text-lg text-gray-900">
+                              {rec.category}
+                            </p>
+                            <span
+                              className={`text-xs px-3 py-1 rounded-full font-semibold uppercase ${
+                                rec.priority === "high"
+                                  ? "bg-red-200 text-red-800"
+                                  : rec.priority === "medium"
+                                  ? "bg-yellow-200 text-yellow-800"
+                                  : "bg-green-200 text-green-800"
+                              }`}
+                            >
+                              {rec.priority} Priority
+                            </span>
+                          </div>
+                          {safeArray(rec.actions).length > 0 && (
+                            <div className="mt-3">
+                              <p className="text-sm font-semibold text-gray-700 mb-2">
+                                Recommended Actions:
+                              </p>
+                              <ul className="space-y-1.5">
+                                {safeArray(rec.actions).map((action, aidx) => (
+                                  <li
+                                    key={aidx}
+                                    className="text-sm text-gray-700 flex items-start gap-2"
+                                  >
+                                    <span className="text-blue-600 font-bold mt-0.5">
+                                      •
+                                    </span>
+                                    <span>{action}</span>
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Leakage Detection */}
             {insights?.leakage?.exists && (
               <div className="bg-white rounded-2xl shadow-xl p-8 border-2 border-red-200">
                 <div className="flex items-center gap-3 mb-6">
@@ -425,7 +691,7 @@ export default function Component() {
               </div>
             )}
 
-            {/* Baseline Model - PHASE 3 */}
+            {/* Baseline Model */}
             {insights?.baseline?.exists && (
               <div className="bg-white rounded-2xl shadow-xl p-8 border-2 border-green-200">
                 <div className="flex items-center gap-3 mb-6">
@@ -633,6 +899,7 @@ export default function Component() {
               </div>
             )}
 
+            {/* Missing Value Analysis */}
             <div className="bg-white rounded-2xl shadow-xl p-8">
               <div className="flex items-center gap-3 mb-6">
                 <AlertTriangle className="w-8 h-8 text-yellow-600" />
@@ -675,38 +942,117 @@ export default function Component() {
                 </div>
               </div>
 
-              {safeArray(insights?.missing?.columns).length > 0 && (
-                <div>
+              {safeArray(insights?.missing?.column_analysis).length > 0 && (
+                <div className="mb-6">
                   <h4 className="font-semibold text-gray-900 mb-3">
-                    Columns with Missing Values
+                    Column Analysis
                   </h4>
                   <div className="space-y-2 max-h-64 overflow-y-auto">
-                    {safeArray(insights.missing.columns).map((col, idx) => (
-                      <div
-                        key={idx}
-                        className={`p-3 rounded-lg ${getSeverityColor(
-                          col.severity
+                    {safeArray(insights.missing.column_analysis).map(
+                      (col, idx) => (
+                        <div
+                          key={idx}
+                          className={`p-3 rounded-lg ${getSeverityColor(
+                            col.severity
+                          )}`}
+                        >
+                          <div className="flex justify-between items-center">
+                            <span className="font-medium">
+                              {col.column || "Unknown"}
+                            </span>
+                            <span className="text-sm">
+                              {(col.missing_percentage || 0).toFixed(2)}%
+                            </span>
+                          </div>
+                          <div className="text-xs mt-1">
+                            {col.missing_count || 0} missing · Pattern:{" "}
+                            {col.pattern || "N/A"}
+                          </div>
+                        </div>
+                      )
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {insights?.missing?.target_analysis && (
+                <div className="bg-purple-50 p-4 rounded-lg border border-purple-200">
+                  <h4 className="font-semibold text-purple-900 mb-2">
+                    Target Column Analysis
+                  </h4>
+                  <div className="grid grid-cols-2 gap-3 text-sm">
+                    <div>
+                      <span className="text-gray-600">Missing Count:</span>
+                      <span className="font-medium ml-2">
+                        {insights.missing.target_analysis.missing_count}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-gray-600">Missing %:</span>
+                      <span className="font-medium ml-2">
+                        {insights.missing.target_analysis.missing_percentage?.toFixed(
+                          2
+                        )}
+                        %
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-gray-600">Has Missing:</span>
+                      <span className="font-medium ml-2">
+                        {insights.missing.target_analysis.has_missing
+                          ? "Yes"
+                          : "No"}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-gray-600">Severity:</span>
+                      <span
+                        className={`font-medium ml-2 px-2 py-0.5 rounded ${getSeverityColor(
+                          insights.missing.target_analysis.severity
                         )}`}
                       >
-                        <div className="flex justify-between items-center">
-                          <span className="font-medium">
-                            {col.column || "Unknown"}
-                          </span>
-                          <span className="text-sm">
-                            {(col.missing_percentage || 0).toFixed(2)}%
-                          </span>
-                        </div>
-                        <div className="text-xs mt-1">
-                          {col.missing_count || 0} missing · Pattern:{" "}
-                          {col.pattern || "N/A"}
-                        </div>
-                      </div>
-                    ))}
+                        {insights.missing.target_analysis.severity}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {insights?.missing?.row_analysis && (
+                <div className="mt-4 bg-gray-50 p-4 rounded-lg">
+                  <h4 className="font-semibold text-gray-900 mb-2">
+                    Row-Level Analysis
+                  </h4>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm">
+                    <div>
+                      <span className="text-gray-600">Rows with Missing:</span>
+                      <span className="font-medium ml-2">
+                        {insights.missing.row_analysis.rows_with_missing?.toLocaleString()}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-gray-600">% of Rows:</span>
+                      <span className="font-medium ml-2">
+                        {insights.missing.row_analysis.percentage_rows_with_missing?.toFixed(
+                          2
+                        )}
+                        %
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-gray-600">
+                        Max Missing per Row:
+                      </span>
+                      <span className="font-medium ml-2">
+                        {insights.missing.row_analysis.max_missing_per_row}
+                      </span>
+                    </div>
                   </div>
                 </div>
               )}
             </div>
 
+            {/* Feature Quality Assessment */}
             <div className="bg-white rounded-2xl shadow-xl p-8">
               <div className="flex items-center gap-3 mb-6">
                 <Layers className="w-8 h-8 text-indigo-600" />
@@ -741,12 +1087,51 @@ export default function Component() {
                   </p>
                 </div>
                 <div className="bg-purple-50 p-4 rounded-lg">
-                  <p className="text-sm text-gray-600 mb-1">Redundant Pairs</p>
+                  <p className="text-sm text-gray-600 mb-1">
+                    Redundant Features
+                  </p>
                   <p className="text-2xl font-bold text-purple-600">
-                    {safeGet(insights, "features.summary.redundant_pairs", 0)}
+                    {safeArray(insights?.features?.redundant_features).length}
                   </p>
                 </div>
               </div>
+
+              {insights?.features?.summary && (
+                <div className="bg-blue-50 p-4 rounded-lg mb-6">
+                  <h4 className="font-semibold text-blue-900 mb-3">
+                    Summary Statistics
+                  </h4>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                    <div>
+                      <span className="text-gray-600">Total Features:</span>
+                      <span className="font-medium ml-2">
+                        {insights.features.summary.total_features}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-gray-600">Usable Features:</span>
+                      <span className="font-medium ml-2">
+                        {insights.features.summary.usable_features}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-gray-600">Features to Drop:</span>
+                      <span className="font-medium ml-2">
+                        {insights.features.summary.features_to_drop}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-gray-600">Feature Quality:</span>
+                      <span className="font-medium ml-2">
+                        {insights.features.summary.feature_quality_percentage?.toFixed(
+                          1
+                        )}
+                        %
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               <div className="space-y-4">
                 {safeArray(insights?.features?.constant_features).length >
@@ -760,7 +1145,7 @@ export default function Component() {
                         (col, idx) => (
                           <span
                             key={idx}
-                            className="bg-white px-3 py-1 rounded text-sm text-gray-700"
+                            className="bg-white px-3 py-1 rounded text-sm text-gray-700 border border-red-200"
                           >
                             {col}
                           </span>
@@ -779,7 +1164,10 @@ export default function Component() {
                     <div className="space-y-2">
                       {safeArray(insights.features.near_constant_features).map(
                         (item, idx) => (
-                          <div key={idx} className="text-sm">
+                          <div
+                            key={idx}
+                            className="text-sm bg-white p-2 rounded border border-orange-200"
+                          >
                             <span className="font-medium">
                               {item.column || "Unknown"}
                             </span>
@@ -804,14 +1192,17 @@ export default function Component() {
                       {safeArray(
                         insights.features.high_cardinality_features
                       ).map((item, idx) => (
-                        <div key={idx} className="text-sm">
+                        <div
+                          key={idx}
+                          className="text-sm bg-white p-2 rounded border border-yellow-200"
+                        >
                           <span className="font-medium">
                             {item.column || "Unknown"}
                           </span>
                           <span className="text-gray-600">
                             {" "}
                             - {(item.unique_values || 0).toLocaleString()}{" "}
-                            unique
+                            unique values
                           </span>
                         </div>
                       ))}
@@ -819,15 +1210,19 @@ export default function Component() {
                   </div>
                 )}
 
-                {safeArray(insights?.features?.redundant_pairs).length > 0 && (
+                {safeArray(insights?.features?.redundant_features).length >
+                  0 && (
                   <div className="bg-purple-50 p-4 rounded-lg">
                     <h4 className="font-semibold text-purple-800 mb-2">
                       Redundant Feature Pairs
                     </h4>
                     <div className="space-y-2">
-                      {safeArray(insights.features.redundant_pairs).map(
+                      {safeArray(insights.features.redundant_features).map(
                         (pair, idx) => (
-                          <div key={idx} className="text-sm">
+                          <div
+                            key={idx}
+                            className="text-sm bg-white p-2 rounded border border-purple-200"
+                          >
                             <span className="font-medium">
                               {pair.column1 || "Unknown"}
                             </span>
@@ -837,7 +1232,8 @@ export default function Component() {
                             </span>
                             <span className="text-gray-600">
                               {" "}
-                              ({(pair.correlation || 0).toFixed(2)})
+                              (correlation: {(pair.correlation || 0).toFixed(3)}
+                              )
                             </span>
                           </div>
                         )
@@ -848,6 +1244,7 @@ export default function Component() {
               </div>
             </div>
 
+            {/* Column Type Distribution */}
             <div className="bg-white rounded-2xl shadow-xl p-8">
               <div className="flex items-center gap-3 mb-6">
                 <Database className="w-8 h-8 text-blue-600" />
@@ -878,6 +1275,7 @@ export default function Component() {
               </div>
             </div>
 
+            {/* Distribution & Outlier Analysis */}
             {insights?.distribution && (
               <div className="bg-white rounded-2xl shadow-xl p-8">
                 <div className="flex items-center gap-3 mb-6">
@@ -1038,6 +1436,7 @@ export default function Component() {
               </div>
             )}
 
+            {/* Target Variable Analysis */}
             {insights?.imbalance?.exists && (
               <div className="bg-white rounded-2xl shadow-xl p-8">
                 <div className="flex items-center gap-3 mb-6">
