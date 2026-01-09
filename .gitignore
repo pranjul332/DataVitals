@@ -2,3 +2,4 @@ aiml-env/
 # ML model artifacts
 *.pkl
 __pycache__/
+backend/.env*
