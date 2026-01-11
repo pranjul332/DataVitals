@@ -64,63 +64,8 @@ This is NOT a toy project. This is **senior-level ML engineering**.
 
 **Key principle:** The pipeline adapts to the task, not the dataset.
 
----
 
-## 📁 Project Structure
 
-```
-dataset_intelligence_engine/
-│
-├── backend/
-│   ├── app.py                     # FastAPI entry point
-│   ├── config.py
-│   │
-│   ├── core/
-│   │   ├── profiler.py            # Dataset X-ray (dtypes, stats, schema)
-│   │   ├── purpose.py             # Task schema definitions
-│   │   ├── planner.py             # LLM interface for pipeline generation
-│   │   ├── validator.py           # Pipeline safety checks
-│   │   ├── executor.py            # Executes preprocessing plans
-│   │   └── report.py              # Human-readable report builder
-│   │
-│   ├── health/
-│   │   ├── missing.py             # Missing value impact analysis
-│   │   ├── distribution.py        # Outliers, skewness, kurtosis
-│   │   ├── features.py            # Low variance, cardinality checks
-│   │   ├── imbalance.py           # Class distribution analysis
-│   │   ├── leakage.py             # ⭐ Leakage detection (ML-assisted)
-│   │   ├── bias.py                # Fairness & proxy detection
-│   │   ├── baseline.py            # Sanity model for overfitting detection
-│   │   └── scoring.py             # 0-100 health score generator
-│   │
-│   ├── ops/
-│   │   ├── cleaning_ops.py        # drop, fill, deduplicate
-│   │   ├── feature_ops.py         # encoding, scaling, transforms
-│   │   └── time_ops.py            # time-series operations
-│   │
-│   ├── ml/
-│   │   ├── imputers.py            # KNN, regression imputation
-│   │   ├── outliers.py            # IsolationForest, LOF
-│   │   └── scaling.py             # StandardScaler, MinMaxScaler
-│   │
-│   └── requirements.txt
-│
-├── frontend/                      # Next.js + Tailwind
-│   ├── pages/
-│   │   ├── upload/
-│   │   ├── report/
-│   │   └── compare/
-│   ├── components/
-│   │   ├── HealthDashboard/
-│   │   ├── PipelineVisualizer/
-│   │   └── Charts/
-│   └── api/
-│       └── client.js
-│
-└── README.md
-```
-
----
 
 ## 🔬 Module Breakdown
 
@@ -439,7 +384,7 @@ POST   /auto-fix            # One-click cleanup
 ## 📊 Sample Output & UI Screenshots
 
 ### Health Dashboard
-![Health Dashboard Overview](docs/images/health-dashboard.png)
+![Health Dashboard Overview](https://ibb.co/KpRxjQvk)
 *Overall health score with component breakdowns - instantly shows dataset readiness*
 
 **Key Metrics Displayed:**
@@ -448,7 +393,7 @@ POST   /auto-fix            # One-click cleanup
 - **Quick Stats:** Total rows (13,320), columns (9), memory (4.66 MB), duplicates (3.97%)
 
 ### Risk Detection Report
-![Top Risks Detected](docs/images/risk-detection.png)
+![Top Risks Detected](https://ibb.co/8w5P4Kg)
 *Actionable insights with severity levels and recommended fixes*
 
 **Example Risk Alert:**
