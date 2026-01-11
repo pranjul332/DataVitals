@@ -1,5 +1,5 @@
 """
-Dataset health analysis endpoints.
+Dataset health analysis endpoints with report saving.
 """
 
 from flask import Blueprint, request, jsonify
@@ -17,6 +17,8 @@ from core.analysis.leakage import LeakageDetector
 from core.analysis.baseline import BaselineModel
 from core.analysis.scoring import HealthScorer
 from core.analysis.report import ReportGenerator as HealthReportGenerator
+from database.user import get_db
+from database.analysis import save_analysis_report
 
 analysis_bp = Blueprint('analysis', __name__)
 
@@ -26,6 +28,7 @@ def analyze_dataset():
     """
     Comprehensive dataset health analysis.
     Returns health score, risks, and recommendations.
+    Saves report to database if user is authenticated.
     """
     try:
         # ================= VALIDATION =================
@@ -123,8 +126,24 @@ def analyze_dataset():
             'recommendations': final_report['recommendations'],
             'summary': final_report['summary'],
             'component_scores': final_report['component_breakdown'],
-            'detailed_analysis': analysis_report
+            'detailed_analysis': analysis_report,
+            'filename': file.filename,
+            'target_column': target_col
         }
+
+        # ================= SAVE REPORT TO DATABASE =================
+        report_id = None
+        if hasattr(request, 'current_user_db'):
+            # User is authenticated, save the report
+            auth0_id = request.current_user_db.get('auth0_id')
+            db = get_db()
+            report_id = save_analysis_report(db, auth0_id, full_response)
+            
+            if report_id:
+                print(f"✓ Report saved with ID: {report_id}", file=sys.stderr)
+                full_response['report_id'] = report_id
+            else:
+                print("⚠️  Failed to save report to database", file=sys.stderr)
 
         # ================= DEBUG LOGS =================
         print("\n" + "=" * 60, file=sys.stderr)
@@ -133,6 +152,7 @@ def analyze_dataset():
         print(f"Health Score: {full_response['health_score']}", file=sys.stderr)
         print(f"Grade: {full_response['grade']}", file=sys.stderr)
         print(f"Top Risks: {len(full_response.get('top_risks', []))}", file=sys.stderr)
+        print(f"Report ID: {report_id}", file=sys.stderr)
         print("=" * 60 + "\n", file=sys.stderr)
 
         return jsonify(full_response)

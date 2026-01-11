@@ -1,5 +1,6 @@
-"use client"
-import React, { useState, useRef } from "react";
+"use client";
+import React, { useState, useRef, useEffect } from "react";
+import { useAuth0 } from "@auth0/auth0-react";
 import {
   Upload,
   FileText,
@@ -12,9 +13,10 @@ import {
   Eye,
   Settings,
   BarChart,
+  Lock,
 } from "lucide-react";
 
-const API_BASE = "http://localhost:5000";
+const API_BASE = "http://localhost:8000";
 
 export default function DataPrepEngine() {
   const [step, setStep] = useState("upload");
@@ -33,23 +35,124 @@ export default function DataPrepEngine() {
   const [dryRunResult, setDryRunResult] = useState(null);
   const fileInputRef = useRef(null);
 
+  // Auth state
+  const { isAuthenticated, user, getAccessTokenSilently } = useAuth0();
+  const [authToken, setAuthToken] = useState(null);
+  const [tokenLoading, setTokenLoading] = useState(false);
+
+  // Get auth token when user is authenticated
+  useEffect(() => {
+    const getToken = async () => {
+      if (!isAuthenticated) {
+        setAuthToken(null);
+        return;
+      }
+
+      try {
+        setTokenLoading(true);
+        console.log("🔑 [DataPrep] Fetching access token...");
+
+        const token = await getAccessTokenSilently({
+          authorizationParams: {
+            audience: process.env.NEXT_PUBLIC_AUTH0_AUDIENCE,
+            scope: "openid profile email",
+          },
+        });
+
+        setAuthToken(token);
+        console.log("✅ [DataPrep] Token obtained");
+      } catch (error) {
+        console.error("❌ [DataPrep] Error getting token:", error);
+        setAuthToken(null);
+      } finally {
+        setTokenLoading(false);
+      }
+    };
+
+    getToken();
+  }, [isAuthenticated, getAccessTokenSilently]);
+
+  // Helper function to get auth headers
+  const getAuthHeaders = (includeContentType = true) => {
+    const headers = {};
+    if (includeContentType) {
+      headers["Content-Type"] = "application/json";
+    }
+    if (authToken) {
+      headers["Authorization"] = `Bearer ${authToken}`;
+      console.log("✅ [DataPrep] Adding Authorization header");
+    } else {
+      console.warn("⚠️ [DataPrep] No authToken available");
+    }
+    if (user?.sub) {
+      headers["X-User-Id"] = user.sub;
+    }
+    return headers;
+  };
+
   const fetchSupportedTasks = async () => {
+    if (!isAuthenticated || !authToken) {
+      console.log("⏭️ [DataPrep] Skipping task fetch - not authenticated");
+      // Set default tasks
+      setSupportedTasks({
+        tasks: [
+          "regression",
+          "binary_classification",
+          "multiclass_classification",
+          "clustering",
+          "time_series",
+          "anomaly_detection",
+        ],
+      });
+      return;
+    }
+
     try {
-      const response = await fetch(`${API_BASE}/tasks`);
+      const response = await fetch(`${API_BASE}/tasks`, {
+        headers: getAuthHeaders(),
+      });
+      if (!response.ok) {
+        if (response.status === 401) {
+          setError("Authentication required. Please sign in.");
+          return;
+        }
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
       const data = await response.json();
       setSupportedTasks(data);
     } catch (err) {
       console.error("Failed to fetch tasks:", err);
+      // Fallback to default tasks
+      setSupportedTasks({
+        tasks: [
+          "regression",
+          "binary_classification",
+          "multiclass_classification",
+          "clustering",
+          "time_series",
+          "anomaly_detection",
+        ],
+      });
     }
   };
 
-  React.useEffect(() => {
-    fetchSupportedTasks();
-  }, []);
+  useEffect(() => {
+    if (isAuthenticated && authToken) {
+      fetchSupportedTasks();
+    }
+  }, [isAuthenticated, authToken]);
 
   const handleFileUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
+
+    // Check authentication
+    if (!isAuthenticated || !authToken) {
+      setError(
+        "Please sign in to use the data preparation engine. If you just signed in, please wait a moment."
+      );
+      return;
+    }
 
     setLoading(true);
     setError(null);
@@ -58,14 +161,28 @@ export default function DataPrepEngine() {
     formData.append("file", file);
 
     try {
+      const headers = {};
+      if (authToken) {
+        headers["Authorization"] = `Bearer ${authToken}`;
+      }
+      if (user?.sub) {
+        headers["X-User-Id"] = user.sub;
+      }
+      // Don't set Content-Type for FormData
+
+      console.log("📤 [DataPrep] Uploading file...");
       const response = await fetch(`${API_BASE}/upload`, {
         method: "POST",
+        headers: headers,
         body: formData,
       });
 
       const data = await response.json();
 
       if (!response.ok) {
+        if (response.status === 401) {
+          throw new Error("Authentication required. Please sign in again.");
+        }
         throw new Error(data.error || "Upload failed");
       }
 
@@ -73,21 +190,28 @@ export default function DataPrepEngine() {
       setProfile(data.profile);
       setFilename(data.filename);
       setStep("configure");
+      console.log("✅ [DataPrep] Upload successful");
     } catch (err) {
       setError(err.message);
+      console.error("❌ [DataPrep] Upload failed:", err);
     } finally {
       setLoading(false);
     }
   };
 
   const handleGeneratePlan = async () => {
+    if (!isAuthenticated || !authToken) {
+      setError("Authentication required. Please sign in.");
+      return;
+    }
+
     setLoading(true);
     setError(null);
 
     try {
       const response = await fetch(`${API_BASE}/plan`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: getAuthHeaders(),
         body: JSON.stringify({
           session_id: sessionId,
           task_type: taskType,
@@ -97,7 +221,13 @@ export default function DataPrepEngine() {
 
       const data = await response.json();
 
-      if (!response.ok && data.validation_errors) {
+      if (!response.ok) {
+        if (response.status === 401) {
+          throw new Error("Authentication required. Please sign in again.");
+        }
+        if (data.validation_errors) {
+          throw new Error(data.error || "Plan generation failed");
+        }
         throw new Error(data.error || "Plan generation failed");
       }
 
@@ -111,13 +241,18 @@ export default function DataPrepEngine() {
   };
 
   const handleDryRun = async () => {
+    if (!isAuthenticated || !authToken) {
+      setError("Authentication required. Please sign in.");
+      return;
+    }
+
     setLoading(true);
     setError(null);
 
     try {
       const response = await fetch(`${API_BASE}/dry-run`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: getAuthHeaders(),
         body: JSON.stringify({
           session_id: sessionId,
           plan: plan,
@@ -127,6 +262,9 @@ export default function DataPrepEngine() {
       const data = await response.json();
 
       if (!response.ok) {
+        if (response.status === 401) {
+          throw new Error("Authentication required. Please sign in again.");
+        }
         throw new Error(data.error || "Dry run failed");
       }
 
@@ -139,13 +277,18 @@ export default function DataPrepEngine() {
   };
 
   const handleExecute = async () => {
+    if (!isAuthenticated || !authToken) {
+      setError("Authentication required. Please sign in.");
+      return;
+    }
+
     setLoading(true);
     setError(null);
 
     try {
       const response = await fetch(`${API_BASE}/execute`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: getAuthHeaders(),
         body: JSON.stringify({
           session_id: sessionId,
           plan: plan,
@@ -155,6 +298,9 @@ export default function DataPrepEngine() {
       const data = await response.json();
 
       if (!response.ok) {
+        if (response.status === 401) {
+          throw new Error("Authentication required. Please sign in again.");
+        }
         throw new Error(data.error || "Execution failed");
       }
 
@@ -169,13 +315,18 @@ export default function DataPrepEngine() {
   };
 
   const handleRegeneratePlan = async () => {
+    if (!isAuthenticated || !authToken) {
+      setError("Authentication required. Please sign in.");
+      return;
+    }
+
     setLoading(true);
     setError(null);
 
     try {
       const response = await fetch(`${API_BASE}/regenerate-plan`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: getAuthHeaders(),
         body: JSON.stringify({
           session_id: sessionId,
           feedback: feedback,
@@ -185,6 +336,9 @@ export default function DataPrepEngine() {
       const data = await response.json();
 
       if (!response.ok) {
+        if (response.status === 401) {
+          throw new Error("Authentication required. Please sign in again.");
+        }
         throw new Error(data.error || "Plan regeneration failed");
       }
 
@@ -199,14 +353,22 @@ export default function DataPrepEngine() {
   };
 
   const handleDownload = async () => {
+    if (!isAuthenticated || !authToken) {
+      setError("Authentication required. Please sign in.");
+      return;
+    }
+
     try {
       const response = await fetch(`${API_BASE}/download`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: getAuthHeaders(),
         body: JSON.stringify({ session_id: sessionId }),
       });
 
       if (!response.ok) {
+        if (response.status === 401) {
+          throw new Error("Authentication required. Please sign in again.");
+        }
         throw new Error("Download failed");
       }
 
@@ -239,6 +401,18 @@ export default function DataPrepEngine() {
     }
   };
 
+  // Show loading state while getting token
+  if (isAuthenticated && tokenLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
+          <p className="text-gray-600">Initializing session...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
       <div className="max-w-7xl mx-auto px-4 py-8">
@@ -250,6 +424,25 @@ export default function DataPrepEngine() {
           <p className="text-gray-600">
             AI-powered dataset preprocessing for machine learning
           </p>
+
+          {/* Authentication Status */}
+          {!isAuthenticated && (
+            <div className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-amber-50 border border-amber-200 rounded-lg">
+              <Lock className="w-4 h-4 text-amber-600" />
+              <span className="text-sm text-amber-800 font-medium">
+                Please sign in to use the data preparation engine
+              </span>
+            </div>
+          )}
+
+          {isAuthenticated && authToken && (
+            <div className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-green-50 border border-green-200 rounded-lg">
+              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+              <span className="text-sm text-green-800 font-medium">
+                Authenticated and ready
+              </span>
+            </div>
+          )}
         </div>
 
         {/* Progress Steps */}
@@ -297,34 +490,46 @@ export default function DataPrepEngine() {
           </div>
         )}
 
-        {/* Step 1: Upload */}
-        {step === "upload" && (
-          <div className="bg-white rounded-xl shadow-lg p-8">
-            <div className="text-center">
-              <Upload className="mx-auto mb-4 text-blue-600" size={48} />
-              <h2 className="text-2xl font-bold mb-2">Upload Your Dataset</h2>
-              <p className="text-gray-600 mb-6">
-                Upload a CSV file to begin the data preparation process
-              </p>
+        {/* Disable interaction if not authenticated */}
+        <div className={!isAuthenticated || !authToken ? "opacity-50 pointer-events-none" : ""}>
+          {/* Step 1: Upload */}
+          {step === "upload" && (
+            <div className="bg-white rounded-xl shadow-lg p-8">
+              <div className="text-center">
+                <Upload className="mx-auto mb-4 text-blue-600" size={48} />
+                <h2 className="text-2xl font-bold mb-2">Upload Your Dataset</h2>
+                <p className="text-gray-600 mb-6">
+                  Upload a CSV file to begin the data preparation process
+                </p>
 
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept=".csv"
-                onChange={handleFileUpload}
-                className="hidden"
-                id="file-upload"
-              />
-              <label
-                htmlFor="file-upload"
-                className="inline-flex items-center px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 cursor-pointer transition"
-              >
-                <Upload size={20} className="mr-2" />
-                {loading ? "Uploading..." : "Choose CSV File"}
-              </label>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".csv"
+                  onChange={handleFileUpload}
+                  className="hidden"
+                  id="file-upload"
+                  disabled={!isAuthenticated || !authToken}
+                />
+                <label
+                  htmlFor="file-upload"
+                  className={`inline-flex items-center px-6 py-3 rounded-lg transition ${
+                    isAuthenticated && authToken
+                      ? "bg-blue-600 text-white hover:bg-blue-700 cursor-pointer"
+                      : "bg-gray-300 text-gray-500 cursor-not-allowed"
+                  }`}
+                >
+                  <Upload size={20} className="mr-2" />
+                  {loading
+                    ? "Uploading..."
+                    : !isAuthenticated || !authToken
+                    ? "Sign in to upload"
+                    : "Choose CSV File"}
+                </label>
+              </div>
             </div>
+          )}
           </div>
-        )}
 
         {/* Step 2: Configure */}
         {step === "configure" && (

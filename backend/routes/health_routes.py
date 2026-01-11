@@ -1,35 +1,26 @@
-"""
-Health check and informational endpoints.
-"""
-
 from flask import Blueprint, jsonify
-from core.cleaning.purpose import PurposeSchema
+import sys
 
-health_bp = Blueprint('health', __name__)
+health_bp = Blueprint('health', __name__, url_prefix='/api')
 
-
-@health_bp.route('/health', methods=['GET', 'OPTIONS'])
+@health_bp.route('/health', methods=['GET'])
 def health_check():
-    """Unified health check endpoint"""
+    """Public health check endpoint - no authentication required"""
+    print("🏥 Health check endpoint called", file=sys.stderr)
+    
     return jsonify({
         'status': 'healthy',
-        'version': '5.0.0',
-        'services': [
-            'Dataset Health Analysis',
-            'LLM-Driven Data Preparation'
-        ]
-    })
+        'message': 'API is running',
+        'version': '1.0.0'
+    }), 200
 
-
-@health_bp.route('/tasks', methods=['GET', 'OPTIONS'])
-def get_supported_tasks():
-    """Get list of supported ML tasks"""
-    tasks = PurposeSchema.get_all_tasks()
-    task_details = {
-        task: PurposeSchema.get_schema(task)
-        for task in tasks
-    }
+@health_bp.route('/status', methods=['GET'])
+def status():
+    """Detailed status endpoint"""
+    print("📊 Status endpoint called", file=sys.stderr)
+    
     return jsonify({
-        "tasks": tasks,
-        "details": task_details
-    })
+        'status': 'ok',
+        'database': 'connected',
+        'api': 'operational'
+    }), 200
