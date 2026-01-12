@@ -16,7 +16,7 @@ import {
   Lock,
 } from "lucide-react";
 
-const API_BASE = "http://localhost:8000";
+const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL;
 
 export default function DataPrepEngine() {
   const [step, setStep] = useState("upload");

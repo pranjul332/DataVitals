@@ -28,6 +28,8 @@ export default function App() {
   const [tokenLoading, setTokenLoading] = useState(false);
 
   const { isAuthenticated, user, getAccessTokenSilently } = useAuth0();
+  const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
+
 
   // Get auth token when user is authenticated
   useEffect(() => {
@@ -149,7 +151,7 @@ export default function App() {
       const headers = getAuthHeaders();
       console.log("📤 Sending request with headers:", Object.keys(headers));
 
-      const res = await fetch("http://localhost:8000/analyze", {
+      const res = await fetch(`${BACKEND_URL}/analyze`, {
         method: "POST",
         headers: headers,
         body: formData,
